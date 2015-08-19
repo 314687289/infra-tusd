@@ -1,0 +1,6 @@
+.DS_Store
+
+# Infra
+env.sh
+terraform/
+envs/production/infra-tusd.pem
