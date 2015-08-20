@@ -26,7 +26,14 @@
 #
 # Authors:
 #
-#  - Kevin van Zonneveld <kevin@infra-tusd>
+#  - Kevin van Zonneveld <kevin@transloadit.com>
+#
+# Changelog:
+#
+#  - 2015-08-19 refactored casing
+#  - 2015-08-19 auto-install of terraform-inventory
+#  - 2015-08-19 auto-install of Ansible
+#  - 2015-08-19 quoting of all path vars (so they work with spaces)
 
 set -o pipefail
 set -o errexit
@@ -44,25 +51,41 @@ __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 __file="${__dir}/$(basename "${BASH_SOURCE[0]}")"
 __base="$(basename ${__file} .sh)"
 
-__rootdir="${__dir}"
-__terraformDir="${__rootdir}/terraform"
-__envdir="${__rootdir}/envs/${DEPLOY_ENV}"
-__playbookdir="${__rootdir}/playbook"
-__terraformExe="${__terraformDir}/terraform"
+__os="linux"
+if [[ "${OSTYPE}" == "darwin"* ]]; then
+  __os="darwin"
+fi
+__arch="amd64"
 
-__planfile="${__envdir}/terraform.plan"
-__statefile="${__envdir}/terraform.tfstate"
-__playbookfile="${__playbookdir}/main.yml"
-
+__ansibleVersion="1.9.2"
 __terraformVersion="0.6.3"
+__terraformInventoryVersion="0.5"
+
+__rootDir="${__dir}"
+__binDir="${__rootDir}/bin"
+__terraformDir="${__binDir}/terraform"
+__envDir="${__rootDir}/envs/${DEPLOY_ENV}"
+__playbookDir="${__rootDir}/playbook"
+__terraformExe="${__terraformDir}/terraform"
+__terraformInventoryExe="${__binDir}/terraform-inventory-${__terraformInventoryVersion}-${__os}-${__arch}"
+__ansibleExe="ansible"
+__ansiblePlaybookExe="ansible-playbook"
+__ansibleCfg="${__rootDir}/ansible.cfg"
+
+__planFile="${__envDir}/terraform.plan"
+__stateFile="${__envDir}/terraform.tfstate"
+__playbookFile="${__playbookDir}/main.yml"
+
+
+
 
 ### Functions
 ####################################################################################
 
 function syncUp() {
   [ -z "${host:-}" ] && host="$(${__terraformExe} output public_address)"
-  chmod 600 ${TSD_SSH_KEYPUB_FILE}
-  chmod 600 ${TSD_SSH_KEY_FILE}
+  chmod 600 "${TSD_SSH_KEYPUB_FILE}"
+  chmod 600 "${TSD_SSH_KEY_FILE}"
   rsync \
    --archive \
    --delete \
@@ -88,8 +111,8 @@ function syncUp() {
 
 function syncDown() {
   [ -z "${host:-}" ] && host="$(${__terraformExe} output public_address)"
-  chmod 600 ${TSD_SSH_KEYPUB_FILE}
-  chmod 600 ${TSD_SSH_KEY_FILE}
+  chmod 600 "${TSD_SSH_KEYPUB_FILE}"
+  chmod 600 "${TSD_SSH_KEY_FILE}"
   rsync \
    --archive \
    --delete \
@@ -134,8 +157,8 @@ function syncDown() {
 
 function remote() {
   [ -z "${host:-}" ] && host="$(${__terraformExe} output public_address)"
-  chmod 600 ${TSD_SSH_KEYPUB_FILE}
-  chmod 600 ${TSD_SSH_KEY_FILE}
+  chmod 600 "${TSD_SSH_KEYPUB_FILE}"
+  chmod 600 "${TSD_SSH_KEY_FILE}"
   ssh ${host} \
     -i "${TSD_SSH_KEY_FILE}" \
     -l ${TSD_SSH_USER} \
@@ -181,7 +204,7 @@ enabled=0
 ### Runtime
 ####################################################################################
 
-pushd "${__envdir}" > /dev/null
+pushd "${__envDir}" > /dev/null
 
 if [ "${step}" = "remote" ]; then
   remote ${@:2}
@@ -189,27 +212,27 @@ if [ "${step}" = "remote" ]; then
 fi
 if [ "${step}" = "facts" ]; then
   ANSIBLE_HOST_KEY_CHECKING=False \
-  TF_STATE="${__statefile}" \
-    ansible all \
+  TF_STATE="${__stateFile}" \
+    "${__ansibleExe}" all \
       --user="${TSD_SSH_USER}" \
       --private-key="${TSD_SSH_KEY_FILE}" \
-      --inventory-file="$(which terraform-inventory)" \
+      --inventory-file="${__terraformInventoryExe}" \
       --module-name=setup \
       --args='filter=ansible_*'
 
   exit ${?}
 fi
 if [ "${step}" = "backup" ]; then
-  syncDown "/var/lib/jenkins/" "${__dir}/playbook/templates/"
+  # syncDown "/var/lib/mysql" "${__dir}/data/"
   exit ${?}
 fi
 if [ "${step}" = "restore" ]; then
-  remote "sudo /etc/init.d/redis-server stop || true"
-  remote "sudo addgroup ubuntu redis || true"
-  remote "sudo chmod -R g+wr /var/lib/redis"
-  syncUp "/var/lib/redis/dump.rdb" "./data/redis-dump.rdb"
-  remote "sudo chown -R redis.redis /var/lib/redis"
-  remote "sudo /etc/init.d/redis-server start"
+  # remote "sudo /etc/init.d/redis-server stop || true"
+  # remote "sudo addgroup ubuntu redis || true"
+  # remote "sudo chmod -R g+wr /var/lib/redis"
+  # syncUp "/var/lib/redis/dump.rdb" "./data/redis-dump.rdb"
+  # remote "sudo chown -R redis.redis /var/lib/redis"
+  # remote "sudo /etc/init.d/redis-server start"
   exit ${?}
 fi
 
@@ -224,25 +247,37 @@ for action in "prepare" "init" "plan" "backup" "launch" "install" "upload" "setu
   echo "--> ${TSD_HOSTNAME} - ${action}"
 
   if [ "${action}" = "prepare" ]; then
-    os="linux"
-    if [[ "${OSTYPE}" == "darwin"* ]]; then
-      os="darwin"
-    fi
-
     # Install brew/wget on OSX
-    if [ "${os}" = "darwin" ]; then
+    if [ "${__os}" = "darwin" ]; then
       [ -z "$(which brew 2>/dev/null)" ] && ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
       [ -z "$(which wget 2>/dev/null)" ] && brew install wget
     fi
 
+    # Install Ansible
+    if [ "$(echo $("${__ansibleExe}" --version |head -n1))" != "ansible 1.9.2" ]; then
+      echo "--> ${TSD_HOSTNAME} - installing Ansible v${__ansibleVersion}"
+      set -x
+      sudo easy_install pip
+      sudo pip install --upgrade pip
+      set +x
+      if [ "${__os}" = "darwin" ]; then
+        set -x
+        sudo env CFLAGS=-Qunused-arguments CPPFLAGS=-Qunused-arguments pip install --upgrade ansible==1.9.2
+        set +x
+      else
+        set -x
+        sudo pip install --upgrade ansible=1.9.2
+        set +x
+      fi
+    fi
+
     # Install Terraform
-    arch="amd64"
-    zipFile="terraform_${__terraformVersion}_${os}_${arch}.zip"
-    url="https://dl.bintray.com/mitchellh/terraform/${zipFile}"
-    dir="${__terraformDir}"
-    mkdir -p "${dir}"
-    pushd "${dir}" > /dev/null
+    mkdir -p "${__terraformDir}"
+    pushd "${__terraformDir}" > /dev/null
       if [ "$(echo $("${__terraformExe}" version))" != "Terraform v${__terraformVersion}" ]; then
+      echo "--> ${TSD_HOSTNAME} - installing Terraform v{__terraformVersion}"
+        zipFile="terraform_${__terraformVersion}_${__os}_${__arch}.zip"
+        url="https://dl.bintray.com/mitchellh/terraform/${zipFile}"
         rm -f "${zipFile}" || true
         wget "${url}"
         unzip -o "${zipFile}"
@@ -261,7 +296,7 @@ for action in "prepare" "init" "plan" "backup" "launch" "install" "upload" "setu
     fi
     if [ ! -f "${TSD_SSH_KEYPUB_FILE}" ]; then
       chmod 600 "${TSD_SSH_KEY_FILE}" || true
-      ssh-keygen -yf "${IIM_SSH_KEY_FILE}" > "${IIM_SSH_KEYPUB_FILE}"
+      ssh-keygen -yf "${TSD_SSH_KEY_FILE}" > "${TSD_SSH_KEYPUB_FILE}"
       chmod 600 "${TSD_SSH_KEYPUB_FILE}" || true
     fi
 
@@ -279,7 +314,7 @@ for action in "prepare" "init" "plan" "backup" "launch" "install" "upload" "setu
   terraformArgs="${terraformArgs} -var TSD_SSH_KEY_NAME=${TSD_SSH_KEY_NAME}"
 
   if [ "${action}" = "init" ]; then
-    # if [ ! -f ${__statefile} ]; then
+    # if [ ! -f "${__stateFile}" ]; then
     #   echo "Nothing to refresh yet."
     # else
     bash -c "${__terraformExe} refresh ${terraformArgs}" || true
@@ -287,8 +322,8 @@ for action in "prepare" "init" "plan" "backup" "launch" "install" "upload" "setu
   fi
 
   if [ "${action}" = "plan" ]; then
-    rm -f ${__planfile}
-    bash -c "${__terraformExe} plan -refresh=false ${terraformArgs} -out ${__planfile}"
+    rm -f "${__planFile}"
+    bash -c ""${__terraformExe}" plan -refresh=false ${terraformArgs} -out "${__planFile}""
     processed="${processed} ${action}" && continue
   fi
 
@@ -298,14 +333,14 @@ for action in "prepare" "init" "plan" "backup" "launch" "install" "upload" "setu
   fi
 
   if [ "${action}" = "launch" ]; then
-    if [ -f ${__planfile} ]; then
+    if [ -f "${__planFile}" ]; then
       echo "--> Press CTRL+C now if you are unsure! Executing plan in ${TSD_VERIFY_TIMEOUT}s..."
       [ "${dryRun}" -eq 1 ] && echo "--> Dry run break" && exit 1
       sleep ${TSD_VERIFY_TIMEOUT}
       # exit 1
-      ${__terraformExe} apply ${__planfile}
-      git add "${__statefile}" || true
-      git add "${__statefile}.backup" || true
+      "${__terraformExe}" apply "${__planFile}"
+      git add "${__stateFile}" || true
+      git add "${__stateFile}.backup" || true
       git commit -m "Save infra state" || true
     else
       echo "Skipping, no changes. "
@@ -314,14 +349,20 @@ for action in "prepare" "init" "plan" "backup" "launch" "install" "upload" "setu
   fi
 
   if [ "${action}" = "install" ]; then
+    tags=""
+    if [ -n "${TSD_ANSIBLE_TAGS}" ]; then
+      tags="--tags="${TSD_ANSIBLE_TAGS}""
+    fi
+    ANSIBLE_CONFIG="${__ansibleCfg}" \
     ANSIBLE_HOST_KEY_CHECKING=False \
-    TF_STATE="${__statefile}" \
-      ansible-playbook \
+    TF_STATE="${__stateFile}" \
+      "${__ansiblePlaybookExe}" \
+        ${tags} \
         --user="${TSD_SSH_USER}" \
         --private-key="${TSD_SSH_KEY_FILE}" \
-        --inventory-file="$(which terraform-inventory)" \
+        --inventory-file="${__terraformInventoryExe}" \
         --sudo \
-      "${__playbookfile}"
+      "${__playbookFile}"
 
     # inParallel "remote" "bash -c \"source ~/playbook/env/config.sh && sudo -E bash ~/playbook/install.sh\""
     processed="${processed} ${action}" && continue
@@ -339,7 +380,7 @@ for action in "prepare" "init" "plan" "backup" "launch" "install" "upload" "setu
 
   if [ "${action}" = "show" ]; then
     echo "http://${TSD_DOMAIN}:${TSD_APP_PORT}"
-    # for host in $(${__terraformExe} output public_addresses); do
+    # for host in $("${__terraformExe}" output public_addresses); do
     #   echo " - http://${host}:${TSD_APP_PORT}"
     # done
     processed="${processed} ${action}" && continue

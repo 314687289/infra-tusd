@@ -31,17 +31,20 @@
 
     - name: Common | Add convenience shortcut wtf
       action: lineinfile dest=/home/ubuntu/.bashrc line="alias wtf='sudo tail -f /var/log/*{log,err} /var/log/{dmesg,messages,*{,/*}{log,err}}'"
-      register: bashrc
 
+    - name: tusd | Create approot
+      file: path=/srv/tusd/current state=directory owner=www-data group=www-data mode=0755 recurse=yes
 
-  # - name: Tus | Download tusd
-  #   action: foo bar
-  #   register: foo bar
-  #
-  # - name: Tus | Install upstart/systemd file
-  #   action: foo bar
-  #   register: foo bar
-  #
-  # - name: Tus | Start service
-  #   action: foo bar
-  #   register: foo bar
+    - name: tusd | Download binary
+      #@todo Replace this with binary download
+      action: template src=templates/faketusd dest=/srv/tusd/current/tusd mode=0755
+
+    - name: tusd | Upload environment
+      #@todo Replace this with real environment file?
+      action: template src=templates/env dest=/srv/tusd/current/env.sh mode=0600 owner=root group=root
+
+    - name: tusd | Install upstart file
+      action: template src=templates/upstart-tusd dest=/etc/init/tusd.conf
+
+    - name: tusd | Restart
+      action: service name=tusd state=restarted

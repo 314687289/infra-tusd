@@ -44,4 +44,7 @@ export TSD_SSH_KEYPUB_FILE="${__envdir}/infra-tusd.pub"
 export TSD_SSH_KEYPUB=$(echo "$(cat "${TSD_SSH_KEYPUB_FILE}" 2>/dev/null)") || true
 export TSD_SSH_KEYPUB_FINGERPRINT="$(ssh-keygen -lf ${TSD_SSH_KEYPUB_FILE} | awk '{print $2}')"
 
+
+export TSD_ANSIBLE_TAGS="${IIM_ANSIBLE_TAGS:-}"
+
 export TSD_VERIFY_TIMEOUT=5

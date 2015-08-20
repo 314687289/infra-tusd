@@ -48,41 +48,45 @@ as you see this is a very powerful way to set up many more servers, or deal with
 
 ## Prerequisites
 
-### Terraform
+These programs are installed automatically if you miss them:
 
-> Terraform can set up machines & other resources at nearly all cloud providers
+ - Terraform (local install)
+ - terraform-inventory (local install, shipped with repo)
+ - Ansible (via pip, asks for sudo password) 
+ 
+(only works on 64 bits Linux & OSX)
 
-Installed automatically by `control.sh prepare` if missing.
+## Tips
 
-### terraform-inventory
-
-> Passes the hosts that Terraform created to Ansible.
-> Parses state file, converts that to Ansible inventory.
-
-**On OSX**
-
-brew install https://raw.github.com/adammck/terraform-inventory/master/homebrew/terraform-inventory.rb
-
-**On Linux**
-
-Either compile the Go build, or use https://github.com/Homebrew/linuxbrew and `brew install` as well.
-
-### Ansible
-
-> A pragmatic, standardized way of provisioning servers with software & configuration.
-
-**On OSX**
+If you only want to run a particular Ansible job, you can use tags. For example:
 
 ```bash
-sudo -HE easy_install pip
-sudo -HE pip install --upgrade pip
-sudo -HE CFLAGS=-Qunused-arguments CPPFLAGS=-Qunused-arguments pip install --upgrade ansible
+IIM_ANSIBLE_TAGS=fetch make deploy
 ```
 
-**On Linux**
+If you want to deploy with an unclean Git dir, use `unsafe` variants:
 
 ```bash
-sudo -HE easy_install pip
-sudo -HE pip install --upgrade pip
-sudo -HE pip install --upgrade ansible
+make deploy-unsafe
+```
+
+If you to SSH into the box
+
+```bash
+make console
+```
+
+## Create an encrypted password for use in Ansible
+
+### Linux 
+
+```bash
+mkpasswd --method=SHA-512
+```
+
+### OSX 
+
+```bash
+pip install --upgrade passlib
+python -c "from passlib.hash import sha512_crypt; import getpass; print sha512_crypt.encrypt(getpass.getpass())"
 ```
