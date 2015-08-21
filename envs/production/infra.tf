@@ -49,6 +49,10 @@ resource "aws_instance" "infra-tusd-server" {
     user     = "ubuntu"
     key_file = "${var.TSD_SSH_KEY_FILE}"
   }
+
+  tags {
+    Name = "${var.TSD_DOMAIN}"
+  }
 }
 
 resource "aws_route53_record" "www" {

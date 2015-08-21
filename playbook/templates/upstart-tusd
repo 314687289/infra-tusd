@@ -21,6 +21,5 @@ script
   exec >/tmp/tusd-log-fifo
   rm /tmp/tusd-log-fifo
   exec bash -c "cd /srv/tusd/current \
-    && source env.sh \
-    && exec sudo -EHu www-data ./tusd 2>&1"
+    && exec sudo -EHu www-data ./tusd -port=8080 -dir=/mnt/tusd-data -store-size=10737418240"
 end script

@@ -37,7 +37,10 @@
 
     - name: tusd | Download binary
       #@todo Replace this with binary download
-      action: template src=templates/faketusd dest=/srv/tusd/current/tusd mode=0755
+      action: copy src=templates/tusd dest=/srv/tusd/current/tusd mode=0755
+
+    - name: tusd | Create dataroot
+      file: path=/mnt/tusd-data state=directory owner=www-data group=www-data mode=0755 recurse=yes
 
     - name: tusd | Upload environment
       #@todo Replace this with real environment file?
