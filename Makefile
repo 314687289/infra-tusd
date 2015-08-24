@@ -1,3 +1,4 @@
+SHELL     := /usr/bin/env bash
 
 .PHONY: deploy-infra
 deploy-infra:
