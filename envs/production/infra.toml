@@ -183,3 +183,4 @@
   [[config.tasks]]
     action = "service name=tusd state=restarted"
     name = "tusd | Restart"
+
