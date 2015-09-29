@@ -1,22 +1,40 @@
-variable "TSD_AWS_ACCESS_KEY" {}
-variable "TSD_AWS_SECRET_KEY" {}
-variable "TSD_AWS_ZONE_ID" {}
-variable "TSD_DOMAIN" {}
-variable "TSD_SSH_USER" {}
-variable "TSD_SSH_KEY_FILE" {}
-variable "TSD_SSH_KEY_NAME" {}
+variable "TSD_AWS_ACCESS_KEY" {
+  description = "TSD_AWS_ACCESS_KEY"
+}
+variable "TSD_AWS_SECRET_KEY" {
+  description = "TSD_AWS_SECRET_KEY"
+}
+variable "TSD_AWS_ZONE_ID" {
+  description = "TSD_AWS_ZONE_ID"
+}
+variable "TSD_DOMAIN" {
+  description = "TSD_DOMAIN"
+}
+variable "TSD_SSH_USER" {
+  description = "TSD_SSH_USER"
+}
+variable "TSD_SSH_KEY_FILE" {
+  description = "TSD_SSH_KEY_FILE"
+}
+variable "TSD_SSH_KEY_NAME" {
+  description = "TSD_SSH_KEY_NAME"
+}
 
 variable "ip_kevin" {
-  default = "62.163.187.106/32"
+  description = "ip_kevin"
+  default     = "62.163.187.106/32"
 }
 variable "ip_marius" {
-  default = "84.146.5.70/32"
+  description = "ip_marius"
+  default     = "84.146.5.70/32"
 }
 variable "ip_tim" {
-  default = "24.134.75.132/32"
+  description = "ip_tim"
+  default     = "24.134.75.132/32"
 }
 variable "ip_all" {
-  default = "0.0.0.0/0"
+  description = "ip_all"
+  default     = "0.0.0.0/0"
 }
 
 provider "aws" {
