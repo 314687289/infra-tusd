@@ -1,0 +1,109 @@
+{
+  "output": {
+    "public_address": {
+      "value": "${aws_instance.infra-tusd-server.0.public_dns}"
+    },
+    "public_addresses": {
+      "value": "${join(\"\n\", aws_instance.infra-tusd-server.*.public_dns)}"
+    }
+  },
+  "provider": {
+    "aws": {
+      "access_key": "${var.TSD_AWS_ACCESS_KEY}",
+      "region": "us-east-1",
+      "secret_key": "${var.TSD_AWS_SECRET_KEY}"
+    }
+  },
+  "resource": {
+    "aws_instance": {
+      "infra-tusd-server": {
+        "ami": "${lookup(var.ami, var.region)}",
+        "instance_type": "c3.large",
+        "key_name": "${var.TSD_SSH_KEY_NAME}",
+        "security_groups": [
+          "fw-infra-tusd-main"
+        ],
+        "connection": {
+          "key_file": "${var.TSD_SSH_KEY_FILE}",
+          "user": "ubuntu"
+        },
+        "tags": {
+          "Name": "${var.TSD_DOMAIN}"
+        }
+      }
+    },
+    "aws_route53_record": {
+      "www": {
+        "name": "${var.TSD_DOMAIN}",
+        "records": [
+          "${aws_instance.infra-tusd-server.public_dns}"
+        ],
+        "ttl": "300",
+        "type": "CNAME",
+        "zone_id": "${var.TSD_AWS_ZONE_ID}"
+      }
+    },
+    "aws_security_group": {
+      "fw-infra-tusd-main": {
+        "description": "Infra tusd",
+        "name": "fw-infra-tusd-main",
+        "ingress": {
+          "cidr_blocks": [
+            "${var.ip_all}"
+          ],
+          "from_port": 8080,
+          "protocol": "tcp",
+          "to_port": 8080
+        }
+      }
+    }
+  },
+  "variable": {
+    "TSD_AWS_ACCESS_KEY": {
+      "description": "TSD_AWS_ACCESS_KEY"
+    },
+    "TSD_AWS_SECRET_KEY": {
+      "description": "TSD_AWS_SECRET_KEY"
+    },
+    "TSD_AWS_ZONE_ID": {
+      "description": "TSD_AWS_ZONE_ID"
+    },
+    "TSD_DOMAIN": {
+      "description": "TSD_DOMAIN"
+    },
+    "TSD_SSH_KEY_FILE": {
+      "description": "TSD_SSH_KEY_FILE"
+    },
+    "TSD_SSH_KEY_NAME": {
+      "description": "TSD_SSH_KEY_NAME"
+    },
+    "TSD_SSH_USER": {
+      "description": "TSD_SSH_USER"
+    },
+    "ami": {
+      "default": {
+        "us-east-1": "ami-9bce7af0"
+      }
+    },
+    "ip_all": {
+      "default": "0.0.0.0/0",
+      "description": "ip_all"
+    },
+    "ip_kevin": {
+      "default": "62.163.187.106/32",
+      "description": "ip_kevin"
+    },
+    "ip_marius": {
+      "default": "84.146.5.70/32",
+      "description": "ip_marius"
+    },
+    "ip_tim": {
+      "default": "24.134.75.132/32",
+      "description": "ip_tim"
+    },
+    "region": {
+      "default": "us-east-1",
+      "description": "The region of AWS, for AMI lookups."
+    }
+  }
+}
