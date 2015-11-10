@@ -1,1 +1,1 @@
-echo "http://${TSD_DOMAIN}:${TSD_APP_PORT}"
+echo "http://${FREY_DOMAIN}:${FREY_APP_PORT}"

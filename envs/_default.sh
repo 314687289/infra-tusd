@@ -26,25 +26,25 @@
 export APP_PREFIX="TSD"
 export NODE_APP_PREFIX="${APP_PREFIX}"
 
-export TSD_DOMAIN="master.tus.io"
+export FREY_DOMAIN="master.tus.io"
 
-export TSD_APP_DIR="/srv/current"
-export TSD_APP_NAME="infra-tusd"
-export TSD_APP_PORT="8080"
-export TSD_HOSTNAME="$(uname -n)"
+export FREY_APP_DIR="/srv/current"
+export FREY_APP_NAME="infra-tusd"
+export FREY_APP_PORT="8080"
+export FREY_HOSTNAME="$(uname -n)"
 
-export TSD_SERVICE_USER="www-data"
-export TSD_SERVICE_GROUP="www-data"
+export FREY_SERVICE_USER="www-data"
+export FREY_SERVICE_GROUP="www-data"
 
-export TSD_SSH_KEY_NAME="infra-tusd"
-export TSD_SSH_USER="ubuntu"
-export TSD_SSH_EMAIL="hello@infra-tusd"
-export TSD_SSH_KEY_FILE="${__envdir}/infra-tusd.pem"
-export TSD_SSH_KEYPUB_FILE="${__envdir}/infra-tusd.pub"
-export TSD_SSH_KEYPUB=$(echo "$(cat "${TSD_SSH_KEYPUB_FILE}" 2>/dev/null)") || true
-export TSD_SSH_KEYPUB_FINGERPRINT="$(ssh-keygen -lf ${TSD_SSH_KEYPUB_FILE} | awk '{print $2}')"
+export FREY_SSH_KEY_NAME="infra-tusd"
+export FREY_SSH_USER="ubuntu"
+export FREY_SSH_EMAIL="hello@infra-tusd"
+export FREY_SSH_KEY_FILE="${__envdir}/infra-tusd.pem"
+export FREY_SSH_KEYPUB_FILE="${__envdir}/infra-tusd.pub"
+export FREY_SSH_KEYPUB=$(echo "$(cat "${FREY_SSH_KEYPUB_FILE}" 2>/dev/null)") || true
+export FREY_SSH_KEYPUB_FINGERPRINT="$(ssh-keygen -lf ${FREY_SSH_KEYPUB_FILE} | awk '{print $2}')"
 
 
-export TSD_ANSIBLE_TAGS="${IIM_ANSIBLE_TAGS:-}"
+export FREY_ANSIBLE_TAGS="${IIM_ANSIBLE_TAGS:-}"
 
-export TSD_VERIFY_TIMEOUT=5
+export FREY_VERIFY_TIMEOUT=5

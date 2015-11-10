@@ -12,6 +12,6 @@ export DEPLOY_ENV="${DEPLOY_ENV:-production}"
 source "${__rootdir}/envs/${DEPLOY_ENV}/config.sh"
 
 # Secret keys here:
-# export TSD_AWS_ACCESS_KEY="xyz"
-# export TSD_AWS_SECRET_KEY="xyz123"
-# export TSD_AWS_ZONE_ID="Z123"
+# export FREY_AWS_ACCESS_KEY="xyz"
+# export FREY_AWS_SECRET_KEY="xyz123"
+# export FREY_AWS_ZONE_ID="Z123"

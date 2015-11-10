@@ -1,23 +1,23 @@
-variable "TSD_AWS_ACCESS_KEY" {
-  description = "TSD_AWS_ACCESS_KEY"
+variable "FREY_AWS_ACCESS_KEY" {
+  description = "FREY_AWS_ACCESS_KEY"
 }
-variable "TSD_AWS_SECRET_KEY" {
-  description = "TSD_AWS_SECRET_KEY"
+variable "FREY_AWS_SECRET_KEY" {
+  description = "FREY_AWS_SECRET_KEY"
 }
-variable "TSD_AWS_ZONE_ID" {
-  description = "TSD_AWS_ZONE_ID"
+variable "FREY_AWS_ZONE_ID" {
+  description = "FREY_AWS_ZONE_ID"
 }
-variable "TSD_DOMAIN" {
-  description = "TSD_DOMAIN"
+variable "FREY_DOMAIN" {
+  description = "FREY_DOMAIN"
 }
-variable "TSD_SSH_USER" {
-  description = "TSD_SSH_USER"
+variable "FREY_SSH_USER" {
+  description = "FREY_SSH_USER"
 }
-variable "TSD_SSH_KEY_FILE" {
-  description = "TSD_SSH_KEY_FILE"
+variable "FREY_SSH_KEY_FILE" {
+  description = "FREY_SSH_KEY_FILE"
 }
-variable "TSD_SSH_KEY_NAME" {
-  description = "TSD_SSH_KEY_NAME"
+variable "FREY_SSH_KEY_NAME" {
+  description = "FREY_SSH_KEY_NAME"
 }
 
 variable "ip_kevin" {
@@ -38,8 +38,8 @@ variable "ip_all" {
 }
 
 provider "aws" {
-  access_key = "${var.TSD_AWS_ACCESS_KEY}"
-  secret_key = "${var.TSD_AWS_SECRET_KEY}"
+  access_key = "${var.FREY_AWS_ACCESS_KEY}"
+  secret_key = "${var.FREY_AWS_SECRET_KEY}"
   region     = "us-east-1"
 }
 
@@ -58,24 +58,24 @@ variable "region" {
 resource "aws_instance" "infra-tusd-server" {
   ami             = "${lookup(var.ami, var.region)}"
   instance_type   = "c3.large"
-  key_name        = "${var.TSD_SSH_KEY_NAME}"
+  key_name        = "${var.FREY_SSH_KEY_NAME}"
   security_groups = [
     "fw-infra-tusd-main"
   ]
 
   connection {
     user     = "ubuntu"
-    key_file = "${var.TSD_SSH_KEY_FILE}"
+    key_file = "${var.FREY_SSH_KEY_FILE}"
   }
 
   tags {
-    Name = "${var.TSD_DOMAIN}"
+    Name = "${var.FREY_DOMAIN}"
   }
 }
 
 resource "aws_route53_record" "www" {
-  zone_id  = "${var.TSD_AWS_ZONE_ID}"
-  name     = "${var.TSD_DOMAIN}"
+  zone_id  = "${var.FREY_AWS_ZONE_ID}"
+  name     = "${var.FREY_DOMAIN}"
   type     = "CNAME"
   ttl      = "300"
   records  = [ "${aws_instance.infra-tusd-server.public_dns}" ]

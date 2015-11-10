@@ -18,7 +18,7 @@
 #  - Takes an optional 2nd argument: "done". If it's set, only 1 step will execute
 #  - Will cycle through all subsequential steps. So if you choose 'upload', 'setup' will
 #    automatically be executed
-#  - Looks at TSD_DRY_RUN environment var. Set it to 1 to just show what will happen
+#  - Looks at FREY_DRY_RUN environment var. Set it to 1 to just show what will happen
 #
 # Run as:
 #
@@ -65,7 +65,7 @@ __rootDir="${__dir}"
 __binDir="${__rootDir}/bin"
 __terraformDir="${__binDir}/terraform"
 __envDir="${__rootDir}/envs/${DEPLOY_ENV}"
-__playbookDir="${__rootDir}/${__envDir}"
+__playbookDir="${__envDir}"
 __terraformExe="${__terraformDir}/terraform"
 __terraformInventoryExe="${__binDir}/terraform-inventory-${__terraformInventoryVersion}-${__os}-${__arch}"
 __ansibleExe="ansible"
@@ -84,8 +84,8 @@ __playbookFile="${__playbookDir}/main.yml"
 
 function syncUp() {
   [ -z "${host:-}" ] && host="$(${__terraformExe} output public_address)"
-  chmod 600 "${TSD_SSH_KEYPUB_FILE}"
-  chmod 600 "${TSD_SSH_KEY_FILE}"
+  chmod 600 "${FREY_SSH_KEYPUB_FILE}"
+  chmod 600 "${FREY_SSH_KEY_FILE}"
   rsync \
    --archive \
    --delete \
@@ -100,8 +100,8 @@ function syncUp() {
    --no-motd \
    --no-owner \
    --rsh="ssh \
-    -i \"${TSD_SSH_KEY_FILE}\" \
-    -l ${TSD_SSH_USER} \
+    -i \"${FREY_SSH_KEY_FILE}\" \
+    -l ${FREY_SSH_USER} \
     -o CheckHostIP=no \
     -o UserKnownHostsFile=/dev/null \
     -o StrictHostKeyChecking=no" \
@@ -111,8 +111,8 @@ function syncUp() {
 
 function syncDown() {
   [ -z "${host:-}" ] && host="$(${__terraformExe} output public_address)"
-  chmod 600 "${TSD_SSH_KEYPUB_FILE}"
-  chmod 600 "${TSD_SSH_KEY_FILE}"
+  chmod 600 "${FREY_SSH_KEYPUB_FILE}"
+  chmod 600 "${FREY_SSH_KEY_FILE}"
   rsync \
    --archive \
    --delete \
@@ -146,8 +146,8 @@ function syncDown() {
    --no-owner \
    --no-perms \
    --rsh="ssh \
-    -i \"${TSD_SSH_KEY_FILE}\" \
-    -l ${TSD_SSH_USER} \
+    -i \"${FREY_SSH_KEY_FILE}\" \
+    -l ${FREY_SSH_USER} \
     -o CheckHostIP=no \
     -o UserKnownHostsFile=/dev/null \
     -o StrictHostKeyChecking=no" \
@@ -157,11 +157,11 @@ function syncDown() {
 
 function remote() {
   [ -z "${host:-}" ] && host="$(${__terraformExe} output public_address)"
-  chmod 600 "${TSD_SSH_KEYPUB_FILE}"
-  chmod 600 "${TSD_SSH_KEY_FILE}"
+  chmod 600 "${FREY_SSH_KEYPUB_FILE}"
+  chmod 600 "${FREY_SSH_KEY_FILE}"
   ssh ${host} \
-    -i "${TSD_SSH_KEY_FILE}" \
-    -l ${TSD_SSH_USER} \
+    -i "${FREY_SSH_KEY_FILE}" \
+    -l ${FREY_SSH_USER} \
     -o UserKnownHostsFile=/dev/null \
     -o CheckHostIP=no \
     -o StrictHostKeyChecking=no "${@:-}"
@@ -195,7 +195,7 @@ function inParallel () {
 ### Vars
 ####################################################################################
 
-dryRun="${TSD_DRY_RUN:-0}"
+dryRun="${FREY_DRY_RUN:-0}"
 step="${1:-prepare}"
 afterone="${2:-}"
 enabled=0
@@ -214,8 +214,8 @@ if [ "${step}" = "facts" ]; then
   ANSIBLE_HOST_KEY_CHECKING=False \
   TF_STATE="${__stateFile}" \
     "${__ansibleExe}" all \
-      --user="${TSD_SSH_USER}" \
-      --private-key="${TSD_SSH_KEY_FILE}" \
+      --user="${FREY_SSH_USER}" \
+      --private-key="${FREY_SSH_KEY_FILE}" \
       --inventory-file="${__terraformInventoryExe}" \
       --module-name=setup \
       --args='filter=ansible_*'
@@ -244,7 +244,7 @@ for action in "prepare" "init" "plan" "backup" "launch" "install" "upload" "setu
     break
   fi
 
-  echo "--> ${TSD_HOSTNAME} - ${action}"
+  echo "--> ${FREY_HOSTNAME} - ${action}"
 
   if [ "${action}" = "prepare" ]; then
     # Install brew/wget on OSX
@@ -255,7 +255,7 @@ for action in "prepare" "init" "plan" "backup" "launch" "install" "upload" "setu
 
     # Install Ansible
     if [ "$(echo $("${__ansibleExe}" --version |head -n1))" != "ansible 1.9.2" ]; then
-      echo "--> ${TSD_HOSTNAME} - installing Ansible v${__ansibleVersion}"
+      echo "--> ${FREY_HOSTNAME} - installing Ansible v${__ansibleVersion}"
       set -x
       sudo easy_install pip
       sudo pip install --upgrade pip
@@ -275,7 +275,7 @@ for action in "prepare" "init" "plan" "backup" "launch" "install" "upload" "setu
     mkdir -p "${__terraformDir}"
     pushd "${__terraformDir}" > /dev/null
       if [ "$(echo $("${__terraformExe}" version))" != "Terraform v${__terraformVersion}" ]; then
-      echo "--> ${TSD_HOSTNAME} - installing Terraform v{__terraformVersion}"
+      echo "--> ${FREY_HOSTNAME} - installing Terraform v{__terraformVersion}"
         zipFile="terraform_${__terraformVersion}_${__os}_${__arch}.zip"
         url="https://dl.bintray.com/mitchellh/terraform/${zipFile}"
         rm -f "${zipFile}" || true
@@ -287,31 +287,31 @@ for action in "prepare" "init" "plan" "backup" "launch" "install" "upload" "setu
     popd > /dev/null
 
     # Install SSH Keys
-    if [ ! -f "${TSD_SSH_KEY_FILE}" ]; then
-      echo -e "\n\n" | ssh-keygen -t rsa -C "${TSD_SSH_EMAIL}" -f "${TSD_SSH_KEY_FILE}"
-      echo "You may need to add ${TSD_SSH_KEYPUB_FILE} to the Digital Ocean"
-      export TSD_SSH_KEYPUB=$(echo "$(cat "${TSD_SSH_KEYPUB_FILE}")") || true
+    if [ ! -f "${FREY_SSH_KEY_FILE}" ]; then
+      echo -e "\n\n" | ssh-keygen -t rsa -C "${FREY_SSH_EMAIL}" -f "${FREY_SSH_KEY_FILE}"
+      echo "You may need to add ${FREY_SSH_KEYPUB_FILE} to the Digital Ocean"
+      export FREY_SSH_KEYPUB=$(echo "$(cat "${FREY_SSH_KEYPUB_FILE}")") || true
       # Digital ocean requires this:
-      export TSD_SSH_KEYPUB_FINGERPRINT="$(ssh-keygen -lf ${TSD_SSH_KEYPUB_FILE} | awk '{print $2}')"
+      export FREY_SSH_KEYPUB_FINGERPRINT="$(ssh-keygen -lf ${FREY_SSH_KEYPUB_FILE} | awk '{print $2}')"
     fi
-    if [ ! -f "${TSD_SSH_KEYPUB_FILE}" ]; then
-      chmod 600 "${TSD_SSH_KEY_FILE}" || true
-      ssh-keygen -yf "${TSD_SSH_KEY_FILE}" > "${TSD_SSH_KEYPUB_FILE}"
-      chmod 600 "${TSD_SSH_KEYPUB_FILE}" || true
+    if [ ! -f "${FREY_SSH_KEYPUB_FILE}" ]; then
+      chmod 600 "${FREY_SSH_KEY_FILE}" || true
+      ssh-keygen -yf "${FREY_SSH_KEY_FILE}" > "${FREY_SSH_KEYPUB_FILE}"
+      chmod 600 "${FREY_SSH_KEYPUB_FILE}" || true
     fi
 
     processed="${processed} ${action}" && continue
   fi
 
   terraformArgs=""
-  terraformArgs="${terraformArgs} -var TSD_AWS_SECRET_KEY=${TSD_AWS_SECRET_KEY}"
-  terraformArgs="${terraformArgs} -var TSD_AWS_ACCESS_KEY=${TSD_AWS_ACCESS_KEY}"
-  terraformArgs="${terraformArgs} -var TSD_AWS_ZONE_ID=${TSD_AWS_ZONE_ID}"
-  terraformArgs="${terraformArgs} -var TSD_DOMAIN=${TSD_DOMAIN}"
-  terraformArgs="${terraformArgs} -var TSD_SSH_KEYPUB=\"${TSD_SSH_KEYPUB}\""
-  terraformArgs="${terraformArgs} -var TSD_SSH_USER=${TSD_SSH_USER}"
-  terraformArgs="${terraformArgs} -var TSD_SSH_KEY_FILE=${TSD_SSH_KEY_FILE}"
-  terraformArgs="${terraformArgs} -var TSD_SSH_KEY_NAME=${TSD_SSH_KEY_NAME}"
+  terraformArgs="${terraformArgs} -var FREY_AWS_SECRET_KEY=${FREY_AWS_SECRET_KEY}"
+  terraformArgs="${terraformArgs} -var FREY_AWS_ACCESS_KEY=${FREY_AWS_ACCESS_KEY}"
+  terraformArgs="${terraformArgs} -var FREY_AWS_ZONE_ID=${FREY_AWS_ZONE_ID}"
+  terraformArgs="${terraformArgs} -var FREY_DOMAIN=${FREY_DOMAIN}"
+  terraformArgs="${terraformArgs} -var FREY_SSH_KEYPUB=\"${FREY_SSH_KEYPUB}\""
+  terraformArgs="${terraformArgs} -var FREY_SSH_USER=${FREY_SSH_USER}"
+  terraformArgs="${terraformArgs} -var FREY_SSH_KEY_FILE=${FREY_SSH_KEY_FILE}"
+  terraformArgs="${terraformArgs} -var FREY_SSH_KEY_NAME=${FREY_SSH_KEY_NAME}"
 
   if [ "${action}" = "init" ]; then
     # if [ ! -f "${__stateFile}" ]; then
@@ -334,9 +334,9 @@ for action in "prepare" "init" "plan" "backup" "launch" "install" "upload" "setu
 
   if [ "${action}" = "launch" ]; then
     if [ -f "${__planFile}" ]; then
-      echo "--> Press CTRL+C now if you are unsure! Executing plan in ${TSD_VERIFY_TIMEOUT}s..."
+      echo "--> Press CTRL+C now if you are unsure! Executing plan in ${FREY_VERIFY_TIMEOUT}s..."
       [ "${dryRun}" -eq 1 ] && echo "--> Dry run break" && exit 1
-      sleep ${TSD_VERIFY_TIMEOUT}
+      sleep ${FREY_VERIFY_TIMEOUT}
       # exit 1
       "${__terraformExe}" apply "${__planFile}"
       git add "${__stateFile}" || true
@@ -350,16 +350,16 @@ for action in "prepare" "init" "plan" "backup" "launch" "install" "upload" "setu
 
   if [ "${action}" = "install" ]; then
     tags=""
-    if [ -n "${TSD_ANSIBLE_TAGS}" ]; then
-      tags="--tags="${TSD_ANSIBLE_TAGS}""
+    if [ -n "${FREY_ANSIBLE_TAGS}" ]; then
+      tags="--tags="${FREY_ANSIBLE_TAGS}""
     fi
     ANSIBLE_CONFIG="${__ansibleCfg}" \
     ANSIBLE_HOST_KEY_CHECKING=False \
     TF_STATE="${__stateFile}" \
       "${__ansiblePlaybookExe}" \
         ${tags} \
-        --user="${TSD_SSH_USER}" \
-        --private-key="${TSD_SSH_KEY_FILE}" \
+        --user="${FREY_SSH_USER}" \
+        --private-key="${FREY_SSH_KEY_FILE}" \
         --inventory-file="${__terraformInventoryExe}" \
         --sudo \
       "${__playbookFile}"
@@ -379,13 +379,13 @@ for action in "prepare" "init" "plan" "backup" "launch" "install" "upload" "setu
   fi
 
   if [ "${action}" = "show" ]; then
-    echo "http://${TSD_DOMAIN}:${TSD_APP_PORT}"
+    echo "http://${FREY_DOMAIN}:${FREY_APP_PORT}"
     # for host in $("${__terraformExe}" output public_addresses); do
-    #   echo " - http://${host}:${TSD_APP_PORT}"
+    #   echo " - http://${host}:${FREY_APP_PORT}"
     # done
     processed="${processed} ${action}" && continue
   fi
 done
 popd > /dev/null
 
-echo "--> ${TSD_HOSTNAME} - completed:${processed} : )"
+echo "--> ${FREY_HOSTNAME} - completed:${processed} : )"
