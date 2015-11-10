@@ -36,8 +36,10 @@
       file: path=/srv/tusd/current state=directory owner=www-data group=www-data mode=0755 recurse=yes
 
     - name: tusd | Download binary
-      #@todo Replace this with binary download
-      action: copy src=templates/tusd dest=/srv/tusd/current/tusd mode=0755
+      get_url: url=https://github.com/tus/tusd/releases/download/0.0.5-test/tusd_linux_amd64.tar.gz dest=/tmp/tusd_linux_amd64.tar.gz
+
+    - name: tusd | Extract binary
+      unarchive: src=/tmp/tusd_linux_amd64.tar.gz dest=/srv/tusd/current/ mode=0755 owner=www-data group=www-data copy=no
 
     - name: tusd | Create dataroot
       file: path=/mnt/tusd-data state=directory owner=www-data group=www-data mode=0755 recurse=yes
